@@ -9,7 +9,7 @@ let USAGE = """
 <day> must be between 1 and \(NUM_DAYS)
 """
 
-let dayFuncs: [Int: @Sendable (String) -> String] = [
+let dayFuncs: [Int: @Sendable (String) -> ()] = [
     1: day1,
 ]
 
@@ -36,6 +36,6 @@ struct aoc {
         let dayInput = try String(contentsOfFile: "DayInputs/day1.txt", encoding: .utf8)
         let dayFunc = dayFuncs[dayToRun]!
 
-        print(dayFunc(dayInput))
+        dayFunc(dayInput)
     }
 }
