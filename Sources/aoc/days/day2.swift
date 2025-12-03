@@ -29,7 +29,7 @@ func day2(input: String) {
 			let iStr = String(i)
 			let iCharCount = iStr.count
 
-			if iCharCount == 1 {
+			if iCharCount == 1 { // Thank you reddit user heijp06 https://www.reddit.com/r/adventofcode/comments/1pd3atw/comment/ns27i2e
 				continue checkNumber
 			}
 
