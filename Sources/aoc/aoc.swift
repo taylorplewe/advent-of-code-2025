@@ -11,6 +11,7 @@ let USAGE = """
 
 let dayFuncs: [Int: @Sendable (String) -> ()] = [
     1: day1,
+    2: day2,
 ]
 
 @main
@@ -33,7 +34,7 @@ struct aoc {
             printError(msg: "day must be < " + String(NUM_DAYS))
             return
         }
-        let dayInput = try String(contentsOfFile: "DayInputs/day1.txt", encoding: .utf8)
+        let dayInput = try String(contentsOfFile: "DayInputs/day\(dayToRun).txt", encoding: .utf8)
         let dayFunc = dayFuncs[dayToRun]!
 
         dayFunc(dayInput)
