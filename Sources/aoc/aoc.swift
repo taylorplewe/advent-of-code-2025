@@ -12,6 +12,7 @@ let USAGE = """
 let dayFuncs: [Int: @Sendable (String) -> ()] = [
     1: day1,
     2: day2,
+    3: day3,
 ]
 
 @main
