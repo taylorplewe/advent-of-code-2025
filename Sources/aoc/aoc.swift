@@ -14,6 +14,7 @@ let dayFuncs: [Int: @Sendable (String) -> ()] = [
     2: day2,
     3: day3,
     4: day4,
+    5: day5,
 ]
 
 @main
@@ -37,6 +38,10 @@ struct aoc {
             return
         }
         let dayInput = try String(contentsOfFile: "DayInputs/day\(dayToRun).txt", encoding: .utf8)
+        if dayFuncs[dayToRun] == nil {
+            printError(msg: "day function not added to dayFuncs in aoc.swift")
+            return
+        }
         let dayFunc = dayFuncs[dayToRun]!
 
         dayFunc(dayInput)
