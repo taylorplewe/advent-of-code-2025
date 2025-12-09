@@ -17,6 +17,7 @@ let dayFuncs: [Int: @Sendable (String) -> ()] = [
     5: day5,
     6: day6,
     7: day7,
+    8: day8,
 ]
 
 @main
