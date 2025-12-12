@@ -1,5 +1,19 @@
+/// Stores how many paths there are *below* this point, which go to "out", and which either contain "dac" and "fft" or don't
+struct Day11CacheEntry {
+	var dacYFftY: Int
+	var dacYFftN: Int
+	var dacNFftY: Int
+	var dacNFftN: Int
+}
+
 typealias DeviceList = [String: [String]]
-typealias Day11Cache = [String: (Int, Bool, Bool)?]
+// typealias Day11Cache = [String: (Int, Bool, Bool)?]
+
+// 0 - number of paths below here containing both "dac" and "fft"
+// 1 - number of paths below here containing just "dac"
+// 2 - number of paths below here containing both "fft"
+// 3 - number of paths below here containing neither "dac" or "fft"
+typealias Day11Cache = [String: Day11CacheEntry?]
 
 @Sendable
 func day11(input: String) {
@@ -24,59 +38,92 @@ func day11(input: String) {
 		deviceList: deviceList,
 		// device: "you",
 		device: "svr",
-		hasHitFft: false,
-		hasHitDac: false,
 		cache: &cache,
 		level: 0,
 	)
 
-	print("num paths: \(numPaths)")
-	for entry in cache {
-		print("\(entry.key): \(entry.value!)")
-	}
+	print("num paths: \(numPaths.dacYFftY)")
+	// for entry in cache {
+	// 	print("\(entry.key): \(entry.value!)")
+	// }
 }
 
 func getNumPathsToOutFromDevice(
 	deviceList: DeviceList,
 	device: String,
-	hasHitFft: Bool,
-	hasHitDac: Bool,
 	cache: inout Day11Cache,
 	level: Int,
-) -> (Int, Bool, Bool) {
+) -> Day11CacheEntry {
 	assert(deviceList.keys.contains(device))
 
 	let connectedDevices = deviceList[device]!
 
-	if hasHitFft && hasHitDac {
-		cache[device] = nil
-	}
-	var numPathsFromHere = 0
-	var hitDacFromHereDown = device == "dac"
-	var hitFftFromHereDown = device == "fft"
+	cache[device] = nil
+	var numPathsFromHere: Day11CacheEntry = .init(
+		dacYFftY: 0,
+		dacYFftN: 0,
+		dacNFftY: 0,
+		dacNFftN: 0
+	)
+	let isCurrentDeviceDac = device == "dac"
+	let isCurrentDeviceFft = device == "fft"
 	for cd in connectedDevices {
 		if cd == "out" {
-			numPathsFromHere += 1
+			numPathsFromHere.dacYFftY += isCurrentDeviceDac && isCurrentDeviceFft ? 1 : 0
+			numPathsFromHere.dacYFftN += isCurrentDeviceDac && !isCurrentDeviceFft ? 1 : 0
+			numPathsFromHere.dacNFftY += !isCurrentDeviceDac && isCurrentDeviceFft ? 1 : 0
+			numPathsFromHere.dacNFftN += !isCurrentDeviceDac && !isCurrentDeviceFft ? 1 : 0
 		} else if cache.keys.contains(cd) {
 			if cache[cd]! != nil {
-				if (cache[cd]!!.1 || hasHitDac) && (cache[cd]!!.2 || hasHitFft) {
-					numPathsFromHere += cache[cd]!!.0
-				}
+				numPathsFromHere.dacYFftY += cache[cd]!!.dacYFftY
+				numPathsFromHere.dacYFftN += cache[cd]!!.dacYFftN
+				numPathsFromHere.dacNFftY += cache[cd]!!.dacNFftY
+				numPathsFromHere.dacNFftN += cache[cd]!!.dacNFftN
 			}
 		} else {
 			let res = getNumPathsToOutFromDevice(
 				deviceList: deviceList,
 				device: cd,
-				hasHitFft: hasHitFft || hitFftFromHereDown,
-				hasHitDac: hasHitDac || hitDacFromHereDown,
 				cache: &cache,
 				level: level + 1,
 			)
-			numPathsFromHere += res.0
-			if res.1 { hitDacFromHereDown = true }
-			if res.2 { hitFftFromHereDown = true }
+
+			numPathsFromHere.dacYFftY += res.dacYFftY
+			numPathsFromHere.dacYFftN += res.dacYFftN
+			numPathsFromHere.dacNFftY += res.dacNFftY
+			numPathsFromHere.dacNFftN += res.dacNFftN
 		}
 	}
-	cache[device] = (numPathsFromHere, hitDacFromHereDown, hitFftFromHereDown)
-	return (numPathsFromHere, hitDacFromHereDown, hitFftFromHereDown)
+
+	// now move paths over to other tracks depending on if this device is "dac" or "fft"
+	if isCurrentDeviceDac {
+		numPathsFromHere.dacYFftY += numPathsFromHere.dacNFftY
+		numPathsFromHere.dacYFftN += numPathsFromHere.dacNFftN
+		numPathsFromHere.dacNFftY = 0
+		numPathsFromHere.dacNFftN = 0
+	} else if isCurrentDeviceFft {
+		numPathsFromHere.dacYFftY += numPathsFromHere.dacYFftN
+		numPathsFromHere.dacNFftY += numPathsFromHere.dacNFftN
+		numPathsFromHere.dacYFftN = 0
+		numPathsFromHere.dacNFftN = 0
+	}
+
+	cache[device] = numPathsFromHere
+	return numPathsFromHere
+}
+
+func getDay11CacheEntry(hasHitDac: Bool, hasHitFft: Bool) -> (Int, Int, Int, Int) {
+	if hasHitDac {
+		if hasHitFft {
+			return (1, 0, 0, 0)
+		} else {
+			return (0, 1, 0, 0)
+		}
+	} else {
+		if hasHitFft {
+			return (0, 0, 1, 0)
+		} else {
+			return (0, 0, 0, 1)
+		}
+	}
 }
