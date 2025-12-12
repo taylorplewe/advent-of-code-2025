@@ -5,17 +5,19 @@ enum Day10CacheEntry {
 
 typealias LightSet = [Bool]
 typealias ButtonSet = [Int]
+typealias VoltageSet = [Int]
 typealias Cache = [String: Day10CacheEntry]
 
 @Sendable
 func day10(input: String) {
 	let lines = input.split(separator: "\n")
 
-	var sum = 0
+	var sum: UInt64 = 0
 
 	for line in lines {
 		let reLightSet = /\[([\.#]+)\]/
 		let reButtonSets = /\(([0-9,]+)\)/
+		let reVoltageSet = /\{([0-9,]+)\}/
 
 		let targetLightSet: LightSet = line.firstMatch(of: reLightSet)!.1.map({ $0 == "." ? false : true })
 		let startingLightSet = targetLightSet.map({ light in
@@ -26,38 +28,61 @@ func day10(input: String) {
 				Int(num)!
 			}
 		}
+		let targetVoltageSet = line.firstMatch(of: reVoltageSet)!.1.split(separator: ",").map({ Int($0)! })
+		let startingVoltageSet = targetVoltageSet.map({ voltage in
+			0
+		})
 
-		var lowest: Int? = nil
-		var cache: Cache = [:]
+		// var lowest: Int? = nil
+		var lowest: UInt64 = UInt64.max
+		// var cache: Cache = [:]
 		for set in buttonSets {
-			let res = tryButtonSet(
-				targetLightSet: targetLightSet,
-				currentLightSet: startingLightSet,
+			// let res = tryButtonSetPart1(
+			// 	targetLightSet: targetLightSet,
+			// 	currentLightSet: startingLightSet,
+			// 	buttonSetToTry: set,
+			// 	buttonSets: buttonSets,
+			// 	cache: &cache,
+			// 	level: 0,
+			// )
+			var res = tryButtonSetPart2(
+				targetVoltageSet: targetVoltageSet,
+				currentVoltageSet: startingVoltageSet,
 				buttonSetToTry: set,
 				buttonSets: buttonSets,
-				cache: &cache,
 				level: 0,
 			)
-			switch res {
-				case .Empty:
-					continue
-				case .Result(var val):
-					val += 1
-					if lowest == nil || val < lowest! {
-						lowest = val
-					}
+			// switch res {
+			// 	case .Empty:
+			// 		continue
+			// 	case .Result(var val):
+			// 		val += 1
+			// 		if lowest == nil || val < lowest! {
+			// 			lowest = val
+			// 		}
+			// }
+			res += 1
+			if res < lowest {
+				lowest = res
 			}
 		}
 
 		// print("\n\nLOWEST:", lowest!, "\n\n\n\n")
 
-		sum += lowest!
+		// if lowest == nil {
+		// 	print("ERROR: lowest was nil on line: \(line)!")
+		// } else {
+		// 	print("lowest for line: \(line)\n \(lowest!)")
+		// 	sum += lowest!
+		// }
+		print("lowest for line: \(line)\n \(lowest)")
+		sum += lowest
 	}
 
 	print("sum: \(sum)")
 }
 
-func tryButtonSet(
+func tryButtonSetPart1(
 	targetLightSet: LightSet,
 	currentLightSet: LightSet,
 	buttonSetToTry: ButtonSet,
@@ -67,7 +92,7 @@ func tryButtonSet(
 ) -> Day10CacheEntry {
 	// print("\(getSpacesForLevel(level: level))from:", getStringFromLightSet(lightSet: currentLightSet))
 	// print("\(getSpacesForLevel(level: level))applying:", buttonSetToTry)
-	let newLightSet = applyButtonSet(originalLightSet: currentLightSet, buttonSet: buttonSetToTry)
+	let newLightSet = applyButtonSetPart1(originalLightSet: currentLightSet, buttonSet: buttonSetToTry)
 	let newLightSetString = getStringFromLightSet(lightSet: newLightSet)
 
 	// base case
@@ -96,7 +121,7 @@ func tryButtonSet(
 			continue
 		}
 
-		let res = tryButtonSet(
+		let res = tryButtonSetPart1(
 			targetLightSet: targetLightSet,
 			currentLightSet: newLightSet,
 			buttonSetToTry: set,
@@ -126,7 +151,58 @@ func tryButtonSet(
 	return lowest
 }
 
-func applyButtonSet(originalLightSet: LightSet, buttonSet: ButtonSet) -> LightSet {
+func tryButtonSetPart2(
+	targetVoltageSet: VoltageSet,
+	currentVoltageSet: VoltageSet,
+	buttonSetToTry: ButtonSet,
+	buttonSets: [ButtonSet],
+	level: Int, // for debugging
+) -> UInt64 {
+	// if level > 20 {
+	// 	return .Empty
+	// }
+	// print("\(getSpacesForLevel(level: level))from:", getStringFromVoltageSet(voltageSet: currentVoltageSet))
+	// print("\(getSpacesForLevel(level: level))applying:", buttonSetToTry)
+	let newVoltageSet = applyButtonSetPart2(originalVoltageSet: currentVoltageSet, buttonSet: buttonSetToTry)
+
+	// base case
+	if newVoltageSet == targetVoltageSet {
+		// print("\(getSpacesForLevel(level: level))FOUND!!!!!")
+		return 0
+	}
+
+	// too high?
+	for (index, num) in newVoltageSet.enumerated() {
+		if num > targetVoltageSet[index] {
+			return UInt64.max
+		}
+	}
+
+	var lowest: UInt64 = UInt64.max
+	for set in buttonSets {
+		var res = tryButtonSetPart2(
+			targetVoltageSet: targetVoltageSet,
+			currentVoltageSet: newVoltageSet,
+			buttonSetToTry: set,
+			buttonSets: buttonSets,
+			level: level + 1,
+		)
+		switch res {
+			case UInt64.max:
+				continue
+			default:
+				res += 1
+				if res < lowest {
+					lowest = res
+				}
+		}
+	}
+	
+	// print("\(getSpacesForLevel(level: level))returning: \(lowest)")
+	return lowest
+}
+
+func applyButtonSetPart1(originalLightSet: LightSet, buttonSet: ButtonSet) -> LightSet {
 	var newLightSet: LightSet = []
 	for (index, l) in originalLightSet.enumerated() {
 		newLightSet.append(buttonSet.contains(index) ? !l : l)
@@ -134,8 +210,20 @@ func applyButtonSet(originalLightSet: LightSet, buttonSet: ButtonSet) -> LightSe
 	return newLightSet
 }
 
+func applyButtonSetPart2(originalVoltageSet: VoltageSet, buttonSet: ButtonSet) -> VoltageSet {
+	var newVoltageSet: VoltageSet = []
+	for (index, l) in originalVoltageSet.enumerated() {
+		newVoltageSet.append(buttonSet.contains(index) ? l + 1 : l)
+	}
+	return newVoltageSet
+}
+
 func getStringFromLightSet(lightSet: LightSet) -> String {
 	return String(lightSet.map({ $0 ? "#" : "." }))
+}
+
+func getStringFromVoltageSet(voltageSet: VoltageSet) -> String {
+	return voltageSet.map({ String($0) }).joined(separator: ",")
 }
 
 func getSpacesForLevel(level: Int) -> String {
